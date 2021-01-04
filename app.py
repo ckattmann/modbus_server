@@ -6,3 +6,14 @@ server.set_value(object_reference=3, address=1, value=19)
 
 server.start()
 print("Started Modbus Server...")
+
+# With Redis Datastore:
+# =====================
+
+with open("modbus_address_map") as f:
+    modbus_address_map = json.load(f)
+
+datastore = SimpleModbusServer.RedisDatastore(
+    host="localhost", port=6379, db=0, modbus_address_map=modbus_address_map
+)
+sms.Server(host="localhost", port=5020, datastore=datastore)
