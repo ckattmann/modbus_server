@@ -34,3 +34,13 @@ def test_read_coil():
         result = client.read_coil(1, 1)
     assert result.isError() == False
     assert result.registers[0] == True
+
+
+if __name__ == "__main__":
+    import pprint
+    import inspect
+
+    test_functions = [k for k, v in globals().items() if inspect.isfunction(v)]
+
+    for func in test_functions:
+        globals()[func]()

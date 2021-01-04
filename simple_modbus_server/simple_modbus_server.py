@@ -1,10 +1,16 @@
+# Imports from stdlib:
 import time
 import socketserver
 import struct
 import threading
 
+# Internal imports:
+import datastores
+
+# Development imports:
 import stackprinter
 from icecream import ic
+
 
 datastore = {
     "coils": {},
@@ -14,7 +20,7 @@ datastore = {
 }
 
 
-def pack_bools_to_bits(bool_list):
+def pack_bools_to_bytes(bool_list):
     chars = []
     ic(bool_list)
     for j in range(0, len(bool_list), 8):
@@ -44,7 +50,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
 
         ## Extract Header + Function Code:
         # Transaction ID:   (2 Bytes)   Identifies the request-response-pair, is echoed in the response
-        # Protocol:         (2 Bytes)   Always 0 (reserved for future use, lol)
+        # Protocol:         (2 Bytes)   Always 0 ("reserved for future use", lol)
         # Length:           (2 Bytes)   Length of the remaining frame in bytes (Total Length - 6)
         # Unit ID:          (1 Byte)    "Slave ID", inner identifier to route to different units (typically 0)
         # Function Code:    (1 Byte)    1,2,3,4,5,6,15,16,43: Read/Write input/register etc.
@@ -87,24 +93,23 @@ class TCPHandler(socketserver.BaseRequestHandler):
         ic(data)
 
         if object_type in ("input_registers", "holding_registers"):
-            number_of_data_bytes = 2 * number_of_registers
-            response_message_length = 3 + number_of_data_bytes
-            data_bytes = struct.pack(f'{!{len(data)H}}', *data)
+            data_bytes = struct.pack(f"!{len(data)}H", *data)
 
         if object_type in ("coils", "discrete_inputs"):
-            data_bytes = pack_bools_to_bits(bool_list)
+            data_bytes = pack_bools_to_bytes(bool_list)
 
         # Response length is 3 fixed bytes (unit_id, function_code, number_of_data_bytes) plus the data bytes:
         response_message_length = 3 + len(data_bytes)
+        number_of_data_bytes = len(data_bytes)
 
-        ## Compose Response:
+        ## Compose response header, only missing the data_bytes:
         response_items = [
             transaction_id,
             protocol,
             response_message_length,
             unit_id,
             function_code,
-            number_of_data_bytes
+            number_of_data_bytes,
         ]
 
         ## Pack response items into binary format, incl. the data items:
