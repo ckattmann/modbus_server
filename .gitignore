@@ -1,4 +1,7 @@
-led / optimized / DLL files
+# Vim Temporary files
+*.sw[po]
+
+# Compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
