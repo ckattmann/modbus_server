@@ -1,0 +1,39 @@
+{
+    "coils": {},
+    "discrete_inputs": {
+        "0": {
+            "key": "general_server_status_ok",
+            "initial_value": false
+        },
+        "1": {
+            "key": "general_pd_alarm",
+            "initial_value": false
+        },
+        "100": {
+            "key": "pdm_connection_ok",
+            "initial_value": false
+        },
+        "101": {
+            "key": "pdm_measurement_ok",
+            "initial_value": false
+        },
+        "101": {
+            "key": "pdm_pd_alarm",
+            "initial_value": false
+        }
+
+    },
+    "input_registers": {
+        "0": {
+            "key": "number_of_connected_pdms",
+            "initial_value": 0,
+            "format": "h"
+        },
+        "100": {
+            "key": "last_three_numbers_of_serial_number",
+            "initial_value": 0,
+            "format": "h"
+        }
+    }
+}
+

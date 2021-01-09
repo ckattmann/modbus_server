@@ -14,7 +14,7 @@ from icecream import ic
 socketserver.TCPServer.allow_reuse_address = True
 
 
-datastore = datastore.DictDatastore()
+# datastore = datastore.DictDatastore()
 
 
 def pack_bools_to_bytes(bool_list):
@@ -49,6 +49,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
         """Callback Function for requests to the TCP Server:"""
 
         print(f"Handling request from {self.client_address[0]},{self.client_address[1]}")
+        print(self.datastore)
 
         # Recv max 255 bytes, the maximal length for a Modbus frame:
         self.data = self.request.recv(255).strip()
@@ -157,18 +158,19 @@ class TCPHandler(socketserver.BaseRequestHandler):
 
 
 class Server:
-    def __init__(self, host="localhost", port=502):
+    def __init__(self, host="localhost", port=502, datastore=datastore.DictDatastore()):
         self.host = host
         self.port = port
         self.tcp_server = None
+        self.datastore = datastore
 
-    def _start_server_thread(self):
-        while True:
-            self.tcp_server = socketserver.ThreadingTCPServer((self.host, self.port), TCPHandler)
-            self.tcp_server.serve_forever()
+    def _server_thread(self):
+        self.tcp_server = socketserver.ThreadingTCPServer((self.host, self.port), TCPHandler)
+        self.tcp_server.datastore = self.datastore
+        self.tcp_server.serve_forever()
 
     def start(self):
-        self.server_thread = threading.Thread(target=self._start_server_thread).start()
+        self.server_thread = threading.Thread(target=self._server_thread).start()
 
     def stop(self):
         print("Stopping Modbus Server")
