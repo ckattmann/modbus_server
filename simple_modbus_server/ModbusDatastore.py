@@ -85,7 +85,7 @@ class RedisDatastore:
                 value = struct.pack(f"!{encoding}", cast(raw_value))
 
                 if encoding in ("i", "I", "f", "d"):
-                    # if >2 bytes: Find out which part is requested:
+                    # >2 bytes: Find out which part is requested:
                     part = self.modbus_address_map[object_reference][address]["part"]
                     value_bytes = struct.pack(f"!{encoding}", value)
                     value = value_bytes[part * 2 : part * 2 + 2]
