@@ -15,10 +15,6 @@ class DictDatastore:
             "input_registers": {},
             "holding_registers": {},
         }
-        # self.register_encodings = {
-        #     "input_registers": {},
-        #     "holding_registers": {},
-        # }
 
     def read(self, object_reference, first_address, quantity_of_records):
         data = []

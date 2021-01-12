@@ -50,8 +50,6 @@ class TCPHandler(socketserver.BaseRequestHandler):
     def handle(self):
         """Callback Function for requests to the TCP Server:"""
 
-        logging.debug(f"{self.request}")
-
         # Recv max 255 bytes, the maximal length for a Modbus frame:
         self.data = self.request.recv(255).strip()
 
@@ -85,7 +83,6 @@ class TCPHandler(socketserver.BaseRequestHandler):
             4: "input_registers",
             3: "holding_registers",
         }
-
         object_reference = function_code_map[function_code]
 
         ## Validate number of objects requested and respond with exception 3 if invalid:
@@ -121,6 +118,9 @@ class TCPHandler(socketserver.BaseRequestHandler):
             self.request.sendall(response)
             return
 
+        ## Compose response
+        ## ================
+
         if object_reference in ("coils", "discrete_inputs"):
             data_bytes = pack_bools_to_bytes(data)
 
@@ -131,7 +131,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
         response_message_length = 3 + len(data_bytes)
         number_of_data_bytes = len(data_bytes)
 
-        ## Compose response header, only missing the data_bytes:
+        # Compose response header
         response_items = [
             transaction_id,
             protocol,
@@ -141,7 +141,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
             number_of_data_bytes,
         ]
 
-        ## Pack response items into binary format, incl. the data_bytes:
+        # Pack response items into binary format and append data_bytes:
         response = struct.pack(f"!HHHBBB", *response_items) + data_bytes
 
         self.request.sendall(response)
@@ -211,6 +211,9 @@ class Server:
             self._set_value("holding_registers", address, value, encoding)
             address += struct.calcsize(encoding) // 2
 
+    # Actually set the value:
+    # =======================
+
     def _set_value(self, object_reference, address, value, encoding=None):
 
         # Verify address:
@@ -237,15 +240,3 @@ class Server:
                 )
 
         self.datastore.write(object_reference, address, value, encoding)
-
-
-if __name__ == "__main__":
-    host = "localhost"
-    port = 5020
-    while True:
-        try:
-            with socketserver.TCPServer((host, port), TCPHandler) as server:
-                server.serve_forever()
-        except OSError:
-            time.sleep(1)
-            print(".", end="", flush=True)
