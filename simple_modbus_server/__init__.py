@@ -1,3 +1,3 @@
 from .simple_modbus_server import *
 
-from .datastore import DictDatastore, RedisDatastore
+from .ModbusDatastore import DictDatastore, RedisDatastore

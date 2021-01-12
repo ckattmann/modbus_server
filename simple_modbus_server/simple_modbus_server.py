@@ -3,18 +3,17 @@ import time
 import socketserver
 import struct
 import threading
+import logging
 
 # Internal imports:
-from . import datastore
+from . import ModbusDatastore
 
 # Development imports:
 import stackprinter
 from icecream import ic
 
 socketserver.TCPServer.allow_reuse_address = True
-
-
-# datastore = datastore.DictDatastore()
+logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.DEBUG)
 
 
 def pack_bools_to_bytes(bool_list):
@@ -36,10 +35,13 @@ def build_error_response(header_items, exception_code):
     # Error Response Function Code -> Function Code + 128
     response_items[4] = header_items[4] + 128
 
-    # Data -> Exception Code
+    # In an error message, the data contains the Exception Code
     response_items.append(exception_code)
 
     response = struct.pack(f"!HHHBBB", *response_items)
+
+    error_descriptions = {1: "Illegal Function code", 2: "", 3: "", 4: ""}
+    logging.info(f"Modbus Error {exception_code}")
 
     return response
 
@@ -48,8 +50,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
     def handle(self):
         """Callback Function for requests to the TCP Server:"""
 
-        print(f"Handling request from {self.client_address[0]},{self.client_address[1]}")
-        print(self.datastore)
+        logging.debug(f"{self.request}")
 
         # Recv max 255 bytes, the maximal length for a Modbus frame:
         self.data = self.request.recv(255).strip()
@@ -63,14 +64,6 @@ class TCPHandler(socketserver.BaseRequestHandler):
         transaction_id, protocol, length, unit_id, function_code = struct.unpack(
             "!HHHBB", self.data[:8]
         )
-        # print("Modbus Header:")
-        # print("--------------")
-        # ic(transaction_id)
-        # ic(protocol)
-        # ic(length)
-        # ic(unit_id)
-        # ic(function_code)
-        # print("--------------")
 
         # Pack header items into a tuple which can more easily be passed around:
         header_items = (transaction_id, protocol, length, unit_id, function_code)
@@ -85,8 +78,6 @@ class TCPHandler(socketserver.BaseRequestHandler):
         if function_code in (1, 2, 3, 4):  # 'Read' Function Codes
             first_address = struct.unpack("!H", self.data[8:10])[0]
             number_of_registers = struct.unpack("!H", self.data[10:12])[0]
-            ic(first_address)
-            ic(number_of_registers)
 
         function_code_map = {
             1: "coils",
@@ -116,19 +107,19 @@ class TCPHandler(socketserver.BaseRequestHandler):
         ## =============================
 
         try:
-            data = datastore.read(object_reference, first_address, number_of_registers)
+            # self.server is a reference to the socketserver.ThreadingTCPServer instance defined below:
+            data = self.server.datastore.read(object_reference, first_address, number_of_registers)
         except KeyError:
             # Address not in datastore -> Respond with exception 02 - Illegal Data Address:
             response = build_error_response(header_items, exception_code=2)
             self.request.sendall(response)
             return
         except:
+            raise
             # Other Error -> Respond with exception 04 - Slave Device Failure:
             response = build_error_response(header_items, exception_code=4)
             self.request.sendall(response)
             return
-
-        ic(data)
 
         if object_reference in ("coils", "discrete_inputs"):
             data_bytes = pack_bools_to_bytes(data)
@@ -149,7 +140,6 @@ class TCPHandler(socketserver.BaseRequestHandler):
             function_code,
             number_of_data_bytes,
         ]
-        ic("Response: ", response_items, data_bytes)
 
         ## Pack response items into binary format, incl. the data_bytes:
         response = struct.pack(f"!HHHBBB", *response_items) + data_bytes
@@ -158,37 +148,36 @@ class TCPHandler(socketserver.BaseRequestHandler):
 
 
 class Server:
-    def __init__(self, host="localhost", port=502, datastore=datastore.DictDatastore()):
+    def __init__(
+        self, host="localhost", port=502, daemon=False, datastore=ModbusDatastore.DictDatastore()
+    ):
         self.host = host
         self.port = port
-        self.tcp_server = None
         self.datastore = datastore
+        self.daemon = daemon
+        self.tcp_server = None
 
     def _server_thread(self):
         self.tcp_server = socketserver.ThreadingTCPServer((self.host, self.port), TCPHandler)
+        self.tcp_server.allow_reuse_address = True
         self.tcp_server.datastore = self.datastore
         self.tcp_server.serve_forever()
 
     def start(self):
-        self.server_thread = threading.Thread(target=self._server_thread).start()
+        self.server_thread = threading.Thread(target=self._server_thread)
+        # daemon == True -> Shutdown the thread when the main program exits
+        self.server_thread.daemon = self.daemon
+        self.server_thread.start()
 
     def stop(self):
-        print("Stopping Modbus Server")
         if self.tcp_server:
             self.tcp_server.shutdown()
             self.tcp_server.server_close()
             self.tcp_server = None
-        if self.server_thread:
-            self.server_thread.stop()
-            self.server_thread = None
+        logging.info("Modbus Server stopped")
 
-    # TODO: Shortcut func:
-    # set_discrete_input
-    # set_discrete_inputs
-    # set_input_register
-    # set_input_registers
-    # set_holding_register
-    # set_holding_registers
+    ## Convenience Functions for direct access to object reference (single + multiple):
+    ## ================================================================================
 
     def set_coil(self, address, value):
         self._set_value("coils", address, value)
@@ -209,6 +198,19 @@ class Server:
     def set_input_register(self, address, value, encoding):
         self._set_value("input_registers", address, value, encoding)
 
+    def set_input_registers(self, address, values, encoding):
+        for value in values:
+            self._set_value("input_registers", address, value, encoding)
+            address += struct.calcsize(encoding) // 2
+
+    def set_holding_register(self, address, value, encoding):
+        self._set_value("holding_registers", address, value, encoding)
+
+    def set_holding_registers(self, address, values, encoding):
+        for value in values:
+            self._set_value("holding_registers", address, value, encoding)
+            address += struct.calcsize(encoding) // 2
+
     def _set_value(self, object_reference, address, value, encoding=None):
 
         # Verify address:
@@ -218,9 +220,11 @@ class Server:
             raise ValueError(f"'address' must be between 0 and 65535, not {address}")
 
         # Verify if value is boolean for coils and discrete inputs:
-        # This is not done with bool(), because '0' == True
+        # This is not done with bool(), because bool('0') == True might be confusing
         if object_reference in ("coils", "discrete_inputs") and not type(value) == bool:
-            raise TypeError(f"'value' for {object_reference} must be True or False, is {value}")
+            raise TypeError(
+                f"'value' for {object_reference} must be True or False, is {type(value)}"
+            )
 
         # Verify if value can be converted to float for input_registers and holding_registers:
         # This works for float, int, and string with valid number inside
@@ -232,13 +236,7 @@ class Server:
                     f'encoding must be "h"(short), "H"(unsigned short), or "e"(float16), not {encoding}'
                 )
 
-            # try:
-            value = struct.pack("!" + encoding, value)
-            # except:
-            #     raise ValueError(f"'value' {value} cannot be converted to {encoding}")
-
-        datastore.write(object_reference, address, value)
-        print(datastore.dump())
+        self.datastore.write(object_reference, address, value, encoding)
 
 
 if __name__ == "__main__":

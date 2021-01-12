@@ -27,12 +27,24 @@
         "0": {
             "key": "number_of_connected_pdms",
             "initial_value": 0,
-            "format": "h"
+            "encoding": "h"
         },
         "100": {
             "key": "last_three_numbers_of_serial_number",
             "initial_value": 0,
-            "format": "h"
+            "encoding": "h"
+        },
+        "110": {
+            "key": "1:1:max_pd_amplitude",
+            "initial_value": 0,
+            "encoding": "f",
+            "part": 1
+        },
+        "111": {
+            "key": "1:1:max_pd_amplitude",
+            "initial_value": 0,
+            "encoding": "f",
+            "part": 2
         }
     }
 }
