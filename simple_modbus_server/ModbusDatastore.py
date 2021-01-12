@@ -92,7 +92,7 @@ class RedisDatastore:
 
             elif object_reference in ("coils", "discrete_inputs"):
                 # Cast value from string to bool:
-                value = distutils.util.strtobool(raw_value.decode())
+                value = bool(distutils.util.strtobool(raw_value.decode()))
 
             data.append(value)
 
