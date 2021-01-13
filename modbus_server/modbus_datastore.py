@@ -4,8 +4,6 @@ import distutils.util
 import json
 import warnings
 
-import redis
-
 
 class DictDatastore:
     def __init__(self):
@@ -63,9 +61,19 @@ class RedisDatastore:
 
     def _verify_modbus_address_map(self):
         for key in self.modbus_address_map.keys():
-            if key not in ("coils", "discrete_inputs", "input_registers", "holding_registers"):
+            if key not in (
+                "coils",
+                "discrete_inputs",
+                "input_registers",
+                "holding_registers",
+            ):
                 warnings.warn(f"modbus_address_map contains non-standard key {key}")
-        for std_key in ("coils", "discrete_inputs", "input_registers", "holding_registers"):
+        for std_key in (
+            "coils",
+            "discrete_inputs",
+            "input_registers",
+            "holding_registers",
+        ):
             if std_key not in self.modbus_address_map:
                 self.modbus_address_map[std_key] = {}
 
@@ -76,7 +84,9 @@ class RedisDatastore:
             raw_value = self.r.get(key)
 
             if object_reference in ("input_registers", "holding_registers"):
-                encoding = self.modbus_address_map[object_reference][address]["encoding"]
+                encoding = self.modbus_address_map[object_reference][address][
+                    "encoding"
+                ]
 
                 if encoding in ("h", "H", "i"):  # ints
                     cast = int
