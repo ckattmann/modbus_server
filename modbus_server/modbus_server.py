@@ -8,9 +8,6 @@ import logging
 # Internal imports:
 from . import modbus_datastore
 
-# Development imports:
-import stackprinter
-from icecream import ic
 
 socketserver.TCPServer.allow_reuse_address = True
 logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.DEBUG)
