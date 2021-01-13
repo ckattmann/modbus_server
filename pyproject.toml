@@ -1,2 +1,11 @@
-[tool.black]
-line-length = 100
+[build-system]
+requires = ["flit_core >=2,<4"]
+build-backend = "flit_core.buildapi"
+
+[tool.flit.metadata]
+module = "modbus_server"
+author = "Christoph Kattmann"
+author-email = "christoph.kattmann@bss-hs.de"
+classifiers = ["License :: OSI Approved :: MIT License"]
+description-file = "README.md"
+

@@ -6,7 +6,7 @@ import threading
 import logging
 
 # Internal imports:
-from . import ModbusDatastore
+from . import modbus_datastore
 
 # Development imports:
 import stackprinter
@@ -105,7 +105,9 @@ class TCPHandler(socketserver.BaseRequestHandler):
 
         try:
             # self.server is a reference to the socketserver.ThreadingTCPServer instance defined below:
-            data = self.server.datastore.read(object_reference, first_address, number_of_registers)
+            data = self.server.datastore.read(
+                object_reference, first_address, number_of_registers
+            )
         except KeyError:
             # Address not in datastore -> Respond with exception 02 - Illegal Data Address:
             response = build_error_response(header_items, exception_code=2)
@@ -149,7 +151,11 @@ class TCPHandler(socketserver.BaseRequestHandler):
 
 class Server:
     def __init__(
-        self, host="localhost", port=502, daemon=False, datastore=ModbusDatastore.DictDatastore()
+        self,
+        host="localhost",
+        port=502,
+        daemon=False,
+        datastore=modbus_datastore.DictDatastore(),
     ):
         self.host = host
         self.port = port
@@ -158,7 +164,9 @@ class Server:
         self.tcp_server = None
 
     def _server_thread(self):
-        self.tcp_server = socketserver.ThreadingTCPServer((self.host, self.port), TCPHandler)
+        self.tcp_server = socketserver.ThreadingTCPServer(
+            (self.host, self.port), TCPHandler
+        )
         self.tcp_server.allow_reuse_address = True
         self.tcp_server.datastore = self.datastore
         self.tcp_server.serve_forever()
