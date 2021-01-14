@@ -41,13 +41,8 @@ class DictDatastore:
 
 class RedisDatastore:
     def __init__(self, host="localhost", port=6379, db=0, modbus_address_map={}):
-        if importlib.util.find_spec("redis") is not None:
-            import redis
-        else:
-            raise ImportError(
-                "RedisDatastore requires redis-py (https://github.com/andymccurdy/redis-py),\
-                which you can install with 'pip install redis'"
-            )
+        import redis
+
         self.host = host
         self.port = port
         self.db = db
