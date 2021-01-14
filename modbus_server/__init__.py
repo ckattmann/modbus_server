@@ -1,6 +1,6 @@
 """ Easy-to-use ModbusTCP Server in pure Python """
 
-__version__ = "0.1.2"
+__version__ = "0.1.3"
 
 from .modbus_server import Server
 
