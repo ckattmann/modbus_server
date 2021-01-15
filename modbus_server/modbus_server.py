@@ -104,13 +104,13 @@ class TCPHandler(socketserver.BaseRequestHandler):
             # Address not in datastore -> Respond with exception 02 - Illegal Data Address:
             response = build_error_response(header_items, exception_code=2)
             logging.warning(
-                f"Request from {self.client_address[0]} for {object_reference}:{first_address} -> Modbus Error {exception_code}"
+                f"Request from {self.client_address[0]} for {object_reference}:{first_address} -> Modbus Error 2"
             )
             self.request.sendall(response)
             return
         except:
             logging.error(
-                f"Request from {self.client_address[0]} for {object_reference}:{first_address} -> Modbus Error {exception_code}"
+                f"Request from {self.client_address[0]} for {object_reference}:{first_address} -> Modbus Error 4"
             )
             raise
             # Other Error -> Respond with exception 04 - Slave Device Failure:
@@ -152,16 +152,13 @@ class TCPHandler(socketserver.BaseRequestHandler):
 
 
 class Server:
-    def __init__(
-        self,
-        host="localhost",
-        port=502,
-        daemon=False,
-        datastore=modbus_datastore.DictDatastore(),
-    ):
+    def __init__(self, host="localhost", port=502, daemon=False, datastore=None):
         self.host = host
         self.port = port
-        self.datastore = datastore
+        if datastore is None:
+            self.datastore = modbus_datastore.DictDatastore()
+        else:
+            self.datastore = datastore
         self.daemon = daemon
         self.tcp_server = None
 

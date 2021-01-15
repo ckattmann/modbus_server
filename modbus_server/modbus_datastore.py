@@ -59,6 +59,7 @@ class RedisDatastore:
 
     def _connect(self):
         self.r = redis.Redis(self.host, self.port, self.db)
+        self.r.ping()  # Check the connection
 
     def _verify_modbus_address_map(self):
         for key in self.modbus_address_map.keys():
