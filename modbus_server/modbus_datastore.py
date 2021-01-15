@@ -3,6 +3,7 @@ import distutils.util
 import json
 import warnings
 import logging
+import pprint
 
 try:
     import redis
@@ -46,7 +47,7 @@ class DictDatastore:
 
 
 class RedisDatastore:
-    def __init__(self, host="localhost", port=6379, db=0, modbus_address_map={}):
+    def __init__(self, modbus_address_map={}, host="localhost", port=6379, db=0):
 
         self.host = host
         self.port = port
@@ -82,6 +83,15 @@ class RedisDatastore:
     # def set_initial_values(self):
     # TODO:
     #     self.modbus_address_map
+
+    def print_address_map(self):
+        pprint.pprint(self.modbus_address_map)
+
+    def print_all_current_value(self):
+        for object_reference, address_map in self.modbus_address_map.items():
+            print(object_reference)
+            for address, props in address_map.items():
+                print(f"\tAddress: {address} -> {props[key]} : {r.get[props[key]]}")
 
     def read(self, object_reference, first_address, quantity_of_records):
         data = []
