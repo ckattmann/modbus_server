@@ -8,9 +8,14 @@ import logging
 # Internal imports:
 from . import modbus_datastore
 
-
 socketserver.TCPServer.allow_reuse_address = True
-logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.WARNING)
+
+logger = logging.getLogger("modbus_server_logger")
+formatter = logging.Formatter("%(levelname)s: %(message)s")
+streamhandler = logging.StreamHandler()
+streamhandler.setLevel(logging.WARNING)
+streamhandler.setFormatter(formatter)
+logger.addHandler(streamhandler)
 
 
 def pack_bools_to_bytes(bool_list):
@@ -60,7 +65,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
                 "!HHHBB", self.data[:8]
             )
         except struct.error:
-            logging.error(f"Received incompatible bytes {self.data}")
+            logger.error(f"Received incompatible bytes {self.data}")
             return
 
         # Pack header items into a tuple which can more easily be passed around:
@@ -111,13 +116,13 @@ class TCPHandler(socketserver.BaseRequestHandler):
         except KeyError:
             # Address not in datastore -> Respond with exception 02 - Illegal Data Address:
             response = build_error_response(header_items, exception_code=2)
-            logging.warning(
+            logger.warning(
                 f"Request from {self.client_address[0]} for {object_reference}:{first_address} -> Modbus Error 2"
             )
             self.request.sendall(response)
             return
         except:
-            logging.error(
+            logger.error(
                 f"Request from {self.client_address[0]} for {object_reference}:{first_address} -> Modbus Error 4"
             )
             raise
@@ -152,7 +157,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
         # Pack response items into binary format and append data_bytes:
         response = struct.pack(f"!HHHBBB", *response_items) + data_bytes
 
-        logging.debug(
+        logger.debug(
             f"Request from {self.client_address[0]} for {object_reference}:{first_address}+{number_of_registers} -> Response {data_bytes}"
         )
 
@@ -187,14 +192,14 @@ class Server:
         # daemon == True -> Shutdown the thread when the main program exits
         self.server_thread.daemon = self.daemon
         self.server_thread.start()
-        logging.info("Modbus Server started")
+        logger.info("Modbus Server started")
 
     def stop(self):
         if self.tcp_server:
             self.tcp_server.shutdown()
             self.tcp_server.server_close()
             self.tcp_server = None
-        logging.info("Modbus Server stopped")
+        logger.info("Modbus Server stopped")
 
     ## Convenience Functions for direct access to object reference (single + multiple):
     ## ================================================================================

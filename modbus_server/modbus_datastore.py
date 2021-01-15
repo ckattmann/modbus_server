@@ -3,7 +3,10 @@ import distutils.util
 import json
 import warnings
 import logging
+
 import pprint
+
+logger = logging.getLogger("modbus_server_logger")
 
 try:
     import redis
@@ -19,7 +22,7 @@ class DictDatastore:
             "input_registers": {},
             "holding_registers": {},
         }
-        logging.debug("Initialized empty DictDatastore")
+        logger.debug("Initialized empty DictDatastore")
 
     def read(self, object_reference, first_address, quantity_of_records):
         data = []
@@ -56,7 +59,7 @@ class RedisDatastore:
         self.r = None
         self._verify_modbus_address_map()
         self._connect()
-        logging.debug("Initialized RedisDatastore")
+        logger.debug("Initialized RedisDatastore")
 
     def _connect(self):
         self.r = redis.Redis(self.host, self.port, self.db)
@@ -104,13 +107,13 @@ class RedisDatastore:
             raw_value = self.r.get(key)
 
             if raw_value is None:
-                logging.warning(
+                logger.warning(
                     f"Key {key} for {object_reference}:{address} not found in redis"
                 )
                 raise KeyError(f"Key {key} could not be found in redis datastore")
 
             unicode_value = raw_value.decode()
-            logging.debug(
+            logger.debug(
                 f"Getting {key} for {object_reference}:{address} from redis -> {unicode_value}"
             )
 
