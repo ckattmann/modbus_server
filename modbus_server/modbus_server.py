@@ -10,7 +10,7 @@ from . import modbus_datastore
 
 
 socketserver.TCPServer.allow_reuse_address = True
-logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.DEBUG)
+logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.WARNING)
 
 
 def pack_bools_to_bytes(bool_list):
