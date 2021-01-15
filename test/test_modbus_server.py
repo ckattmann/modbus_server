@@ -129,9 +129,7 @@ def test_bits_with_DictDatastore():
 
 def test_bits_with_RedisDatastore():
     datastore = modbus_server.RedisDatastore()
-    s = modbus_server.Server(
-        host="localhost", port=5020, daemon=True, datastore=datastore
-    )
+    s = modbus_server.Server(host="localhost", port=5020, daemon=True, datastore=datastore)
     s.start()
     time.sleep(0.5)
 
@@ -154,9 +152,7 @@ def test_registers_with_DictDatastore():
 
 def test_registers_with_RedisDatastore():
     datastore = modbus_server.RedisDatastore()
-    s = modbus_server.Server(
-        host="localhost", port=5020, daemon=True, datastore=datastore
-    )
+    s = modbus_server.Server(host="localhost", port=5020, daemon=True, datastore=datastore)
     s.start()
     time.sleep(0.5)
 
@@ -166,84 +162,13 @@ def test_registers_with_RedisDatastore():
     s.stop()
 
 
-def now_test_discrete_inputs():
-    s = modbus_server.Server(host="localhost", port=5020)
+def notest_RedisDatastore_with_json():
+    with open("example_modbus_address_map.json") as f:
+        modbus_address_map = json.load(f)
+    datastore = modbus_server.RedisDatastore(modbus_address_map)
+    s = modbus_server.Server(host="localhost", port=5020, daemon=True, datastore=datastore)
     s.start()
     time.sleep(0.5)
 
-    s.set_discrete_input(0, value=False)
-    s.set_discrete_input(1, value=True)
-
-    print(chalk.yellow("Request address normally:"))
-    with pymodbus_client() as client:
-        result = client.read_discrete_inputs(address=0, count=2)
-        assert result.isError() == False
-        assert result.bits[0] == False
-        assert result.bits[1] == True
-        print(result.bits[2:8])
-        assert result.bits[2:8] == [False] * 6
-
-    s.set_discrete_inputs(10000, values=[True] * 200)
-    with pymodbus_client() as client:
-        result = client.read_discrete_inputs(address=10000, count=200)
-        assert result.isError() == False
-        assert result.bits == [True] * 200
-
-    # Exception 2 - Illegal Data Address
-    print(chalk.yellow("Request address that is not set:"))
-    with pymodbus_client() as client:
-        result = client.read_discrete_inputs(address=0, count=3)
-        assert result.isError() == True
-
-    s.stop()
-
-
-def now_test_read_input_registers():
-
-    ## Test FC 3
-    ## =========
-
-    s.set_input_register(0, value=14, encoding="h")
-    s.set_input_register(1, value=15, encoding="h")
-
-    print(chalk.yellow("Request address normally:"))
-    with pymodbus_client() as client:
-        result = client.read_input_registers(address=0, count=2)
-        assert result.isError() == False
-        assert result.registers[0] == 14
-        assert result.registers[1] == 15
-
-    # s.set_discrete_inputs(10000, values=[True] * 200)
-    # with pymodbus_client() as client:
-    #     result = client.read_discrete_inputs(address=10000, count=200)
-    #     assert result.isError() == False
-    #     assert result.bits == [True] * 200
-
-    # Exception 2 - Illegal Data Address
-    print(chalk.yellow("Request address that is not set:"))
-    with pymodbus_client() as client:
-        result = client.read_input_registers(address=0, count=3)
-        assert result.isError() == True
-
-
-if __name__ == "__main__":
-    from pprint import pprint
-    import inspect
-
-    # test_functions = [k for k, v in globals().items() if inspect.isfunction(v)]
-
-    # for func in test_functions:
-    #     globals()[func]()
-
-    # Init Modbus Server:
-    datastore = modbus_server.RedisDatastore()
-    s = modbus_server.Server(
-        host="localhost", port=5020, daemon=True, datastore=datastore
-    )
-    s.start()
-    time.sleep(0.5)
-
-    # now_test_read_input_registers()
-    test_bits_with_RedisDatastore()
-
+    # r = redis.Redis
     s.stop()

@@ -1,50 +1,28 @@
 {
-    "coils": {},
-    "discrete_inputs": {
+    "coils": {
         "0": {
-            "key": "general_server_status_ok",
-            "initial_value": false
-        },
-        "1": {
-            "key": "general_pd_alarm",
-            "initial_value": false
-        },
-        "100": {
-            "key": "pdm_connection_ok",
-            "initial_value": false
-        },
-        "101": {
-            "key": "pdm_measurement_ok",
-            "initial_value": false
-        },
-        "101": {
-            "key": "pdm_pd_alarm",
+            "key": "example_coil_0",
             "initial_value": false
         }
-
+    },
+    "discrete_inputs": {
+        "0": {
+            "key": "example_discrete_input_0",
+            "initial_value": false
+        }
     },
     "input_registers": {
         "0": {
-            "key": "number_of_connected_pdms",
+            "key": "example_input_register_0",
             "initial_value": 0,
             "encoding": "h"
-        },
-        "100": {
-            "key": "last_three_numbers_of_serial_number",
+        }
+    },
+    "holding_registers": {
+        "0": {
+            "key": "example_holding_register_0",
             "initial_value": 0,
             "encoding": "h"
-        },
-        "110": {
-            "key": "1:1:max_pd_amplitude",
-            "initial_value": 0,
-            "encoding": "f",
-            "part": 1
-        },
-        "111": {
-            "key": "1:1:max_pd_amplitude",
-            "initial_value": 0,
-            "encoding": "f",
-            "part": 2
         }
     }
 }
