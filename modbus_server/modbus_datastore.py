@@ -3,7 +3,6 @@ import distutils.util
 import json
 import warnings
 import logging
-import imp
 
 try:
     import redis
