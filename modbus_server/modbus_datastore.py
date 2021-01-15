@@ -1,8 +1,14 @@
 import struct
-import importlib.util
 import distutils.util
 import json
 import warnings
+import logging
+import imp
+
+try:
+    import redis
+except ImportError:
+    logging.info("Could not import redis, RedisDatastore is not available")
 
 
 class DictDatastore:
@@ -13,6 +19,7 @@ class DictDatastore:
             "input_registers": {},
             "holding_registers": {},
         }
+        logging.debug("Initialized empty DictDatastore")
 
     def read(self, object_reference, first_address, quantity_of_records):
         data = []
@@ -41,7 +48,6 @@ class DictDatastore:
 
 class RedisDatastore:
     def __init__(self, host="localhost", port=6379, db=0, modbus_address_map={}):
-        import redis
 
         self.host = host
         self.port = port
@@ -50,6 +56,7 @@ class RedisDatastore:
         self.r = None
         self._verify_modbus_address_map()
         self._connect()
+        logging.debug("Initialized RedisDatastore")
 
     def _connect(self):
         self.r = redis.Redis(self.host, self.port, self.db)
@@ -72,16 +79,19 @@ class RedisDatastore:
             if std_key not in self.modbus_address_map:
                 self.modbus_address_map[std_key] = {}
 
+    # def set_initial_values(self):
+    # TODO:
+    #     self.modbus_address_map
+
     def read(self, object_reference, first_address, quantity_of_records):
         data = []
         for address in range(first_address, first_address + quantity_of_records):
             key = self.modbus_address_map[object_reference][address]["key"]
+            logging.debug(f"Getting {key} for {object_reference}:{key} from redis")
             raw_value = self.r.get(key)
 
             if object_reference in ("input_registers", "holding_registers"):
-                encoding = self.modbus_address_map[object_reference][address][
-                    "encoding"
-                ]
+                encoding = self.modbus_address_map[object_reference][address]["encoding"]
 
                 if encoding in ("h", "H", "i"):  # ints
                     cast = int

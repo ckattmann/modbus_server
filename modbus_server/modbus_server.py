@@ -38,7 +38,6 @@ def build_error_response(header_items, exception_code):
     response = struct.pack(f"!HHHBBB", *response_items)
 
     error_descriptions = {1: "Illegal Function code", 2: "", 3: "", 4: ""}
-    logging.info(f"Modbus Error {exception_code}")
 
     return response
 
@@ -56,9 +55,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
         # Length:           (2 Bytes)   Length of the remaining frame in bytes (Total Length - 6)
         # Unit ID:          (1 Byte)    "Slave ID", inner identifier to route to different units (typically 0)
         # Function Code:    (1 Byte)    1,2,3,4,5,6,15,16,43: Read/Write input/register etc.
-        transaction_id, protocol, length, unit_id, function_code = struct.unpack(
-            "!HHHBB", self.data[:8]
-        )
+        transaction_id, protocol, length, unit_id, function_code = struct.unpack("!HHHBB", self.data[:8])
 
         # Pack header items into a tuple which can more easily be passed around:
         header_items = (transaction_id, protocol, length, unit_id, function_code)
@@ -102,15 +99,19 @@ class TCPHandler(socketserver.BaseRequestHandler):
 
         try:
             # self.server is a reference to the socketserver.ThreadingTCPServer instance defined below:
-            data = self.server.datastore.read(
-                object_reference, first_address, number_of_registers
-            )
+            data = self.server.datastore.read(object_reference, first_address, number_of_registers)
         except KeyError:
             # Address not in datastore -> Respond with exception 02 - Illegal Data Address:
             response = build_error_response(header_items, exception_code=2)
+            logging.warning(
+                f"Request from {self.client_address[0]} for {object_reference}:{first_address} -> Modbus Error {exception_code}"
+            )
             self.request.sendall(response)
             return
         except:
+            logging.error(
+                f"Request from {self.client_address[0]} for {object_reference}:{first_address} -> Modbus Error {exception_code}"
+            )
             raise
             # Other Error -> Respond with exception 04 - Slave Device Failure:
             response = build_error_response(header_items, exception_code=4)
@@ -143,6 +144,10 @@ class TCPHandler(socketserver.BaseRequestHandler):
         # Pack response items into binary format and append data_bytes:
         response = struct.pack(f"!HHHBBB", *response_items) + data_bytes
 
+        logging.debug(
+            f"Request from {self.client_address[0]} for {object_reference}:{first_address}+{number_of_registers} -> Response {data_bytes}"
+        )
+
         self.request.sendall(response)
 
 
@@ -161,9 +166,7 @@ class Server:
         self.tcp_server = None
 
     def _server_thread(self):
-        self.tcp_server = socketserver.ThreadingTCPServer(
-            (self.host, self.port), TCPHandler
-        )
+        self.tcp_server = socketserver.ThreadingTCPServer((self.host, self.port), TCPHandler)
         self.tcp_server.allow_reuse_address = True
         self.tcp_server.datastore = self.datastore
         self.tcp_server.serve_forever()
@@ -230,9 +233,7 @@ class Server:
         # Verify if value is boolean for coils and discrete inputs:
         # This is not done with bool(), because bool('0') == True might be confusing
         if object_reference in ("coils", "discrete_inputs") and not type(value) == bool:
-            raise TypeError(
-                f"'value' for {object_reference} must be True or False, is {type(value)}"
-            )
+            raise TypeError(f"'value' for {object_reference} must be True or False, is {type(value)}")
 
         # Verify if value can be converted to float for input_registers and holding_registers:
         # This works for float, int, and string with valid number inside
@@ -240,8 +241,6 @@ class Server:
 
             # Verify encoding:
             if encoding not in ("h", "H", "e"):
-                raise ValueError(
-                    f'encoding must be "h"(short), "H"(unsigned short), or "e"(float16), not {encoding}'
-                )
+                raise ValueError(f'encoding must be "h"(short), "H"(unsigned short), or "e"(float16), not {encoding}')
 
         self.datastore.write(object_reference, address, value, encoding)
