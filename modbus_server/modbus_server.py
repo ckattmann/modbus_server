@@ -152,7 +152,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
 
 
 class Server:
-    def __init__(self, host="localhost", port=502, daemon=False, datastore=None):
+    def __init__(self, host="localhost", port=502, daemon=False, datastore=None, autostart=False):
         self.host = host
         self.port = port
         if datastore is None:
@@ -161,6 +161,8 @@ class Server:
             self.datastore = datastore
         self.daemon = daemon
         self.tcp_server = None
+        if autostart:
+            self.start()
 
     def _server_thread(self):
         self.tcp_server = socketserver.ThreadingTCPServer((self.host, self.port), TCPHandler)

@@ -87,21 +87,21 @@ class RedisDatastore:
     def print_address_map(self):
         pprint.pprint(self.modbus_address_map)
 
-    def print_all_current_value(self):
+    def print_all_current_values(self):
         for object_reference, address_map in self.modbus_address_map.items():
             print(object_reference)
             for address, props in address_map.items():
-                print(f"\tAddress: {address} -> {props[key]} : {r.get[props[key]]}")
+                print(f"\tAddress: {address} -> {props['key']} : {self.r.get(props['key'])}")
 
     def read(self, object_reference, first_address, quantity_of_records):
         data = []
         for address in range(first_address, first_address + quantity_of_records):
-            key = self.modbus_address_map[object_reference][address]["key"]
-            logging.debug(f"Getting {key} for {object_reference}:{key} from redis")
+            key = self.modbus_address_map[object_reference][str(address)]["key"]
             raw_value = self.r.get(key)
+            logging.debug(f"Getting {key} for {object_reference}:{address} from redis -> {raw_value}")
 
             if object_reference in ("input_registers", "holding_registers"):
-                encoding = self.modbus_address_map[object_reference][address]["encoding"]
+                encoding = self.modbus_address_map[object_reference][str(address)]["encoding"]
 
                 if encoding in ("h", "H", "i"):  # ints
                     cast = int
@@ -111,7 +111,7 @@ class RedisDatastore:
 
                 if encoding in ("i", "I", "f", "d"):
                     # >2 bytes: Find out which part is requested:
-                    part = self.modbus_address_map[object_reference][address]["part"]
+                    part = self.modbus_address_map[object_reference][str(address)]["part"]
                     value_bytes = struct.pack(f"!{encoding}", value)
                     value = value_bytes[part * 2 : part * 2 + 2]
 
@@ -127,10 +127,10 @@ class RedisDatastore:
         if type(value) == bool:
             value = str(value)
         try:
-            key = self.modbus_address_map[object_reference][address]["key"]
+            key = self.modbus_address_map[object_reference][str(address)]["key"]
         except KeyError:
             key = f"{object_reference}:{address}"
-            self.modbus_address_map[object_reference][address] = {
+            self.modbus_address_map[object_reference][str(address)] = {
                 "key": key,
                 "encoding": encoding,
             }
