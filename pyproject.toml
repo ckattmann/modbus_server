@@ -8,6 +8,3 @@ author = "Christoph Kattmann"
 author-email = "christoph.kattmann@bss-hs.de"
 classifiers = ["License :: OSI Approved :: MIT License"]
 description-file = "README.md"
-
-[tool.black]
-line-length = 120

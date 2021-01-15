@@ -91,33 +91,45 @@ class RedisDatastore:
         for object_reference, address_map in self.modbus_address_map.items():
             print(object_reference)
             for address, props in address_map.items():
-                print(f"\tAddress: {address} -> {props['key']} : {self.r.get(props['key'])}")
+                print(
+                    f"\tAddress: {address} -> {props['key']} : {self.r.get(props['key'])}"
+                )
 
     def read(self, object_reference, first_address, quantity_of_records):
         data = []
         for address in range(first_address, first_address + quantity_of_records):
-            key = self.modbus_address_map[object_reference][str(address)]["key"]
+            address_properties = self.modbus_address_map[object_reference][str(address)]
+            key = address_properties["key"]
+
             raw_value = self.r.get(key)
-            logging.debug(f"Getting {key} for {object_reference}:{address} from redis -> {raw_value}")
 
-            if object_reference in ("input_registers", "holding_registers"):
-                encoding = self.modbus_address_map[object_reference][str(address)]["encoding"]
+            if raw_value is None:
+                logging.warning(
+                    f"Key {key} for {object_reference}:{address} not found in redis"
+                )
+                raise KeyError(f"Key {key} could not be found in redis datastore")
 
-                if encoding in ("h", "H", "i"):  # ints
-                    cast = int
+            unicode_value = raw_value.decode()
+            logging.debug(
+                f"Getting {key} for {object_reference}:{address} from redis -> {unicode_value}"
+            )
+
+            if object_reference in ("coils", "discrete_inputs"):
+                # Cast value from string to bool:
+                value = bool(distutils.util.strtobool(unicode_value))
+
+            elif object_reference in ("input_registers", "holding_registers"):
+                encoding = address_properties["encoding"]
+
+                if encoding in ("h", "H", "i", "I"):  # ints
+                    value = struct.pack(f"!{encoding}", int(unicode_value))
                 if encoding in ("e", "f", "d"):  # floats
-                    cast = float
-                value = struct.pack(f"!{encoding}", cast(raw_value))
+                    value = struct.pack(f"!{encoding}", float(unicode_value))
 
                 if encoding in ("i", "I", "f", "d"):
                     # >2 bytes: Find out which part is requested:
-                    part = self.modbus_address_map[object_reference][str(address)]["part"]
-                    value_bytes = struct.pack(f"!{encoding}", value)
-                    value = value_bytes[part * 2 : part * 2 + 2]
-
-            elif object_reference in ("coils", "discrete_inputs"):
-                # Cast value from string to bool:
-                value = bool(distutils.util.strtobool(raw_value.decode()))
+                    part = address_properties["part"]
+                    value = value[(part - 1) * 2 : part * 2]
 
             data.append(value)
 
