@@ -176,6 +176,7 @@ class Server:
         # daemon == True -> Shutdown the thread when the main program exits
         self.server_thread.daemon = self.daemon
         self.server_thread.start()
+        logging.info("Modbus Server started")
 
     def stop(self):
         if self.tcp_server:
