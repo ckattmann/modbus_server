@@ -1,18 +1,22 @@
 import time
+import random
 
 import chalk
 from icecream import ic
 
 from pymodbus.client.sync import ModbusTcpClient
 
+# from .. import modbus_server
 import modbus_server
+
+PORT = random.randint(2000, 10000)
 
 # Helper Function to print yellow with yellow()
 yellow = lambda s: print(chalk.yellow(s))
 
 
 class pymodbus_client:
-    def __init__(self, host="127.0.0.1", port=5020):
+    def __init__(self, host="127.0.0.1", port=PORT):
         self.client = ModbusTcpClient(host=host, port=port)
 
     def __enter__(self):
@@ -117,7 +121,7 @@ def check_registers(s, obj_ref):
 
 
 def test_bits_with_DictDatastore():
-    s = modbus_server.Server(host="localhost", port=5020, daemon=True)
+    s = modbus_server.Server(host="localhost", port=PORT, daemon=True)
     s.start()
     time.sleep(0.5)
 
@@ -129,7 +133,9 @@ def test_bits_with_DictDatastore():
 
 def test_bits_with_RedisDatastore():
     datastore = modbus_server.RedisDatastore()
-    s = modbus_server.Server(host="localhost", port=5020, daemon=True, datastore=datastore)
+    s = modbus_server.Server(
+        host="localhost", port=PORT, daemon=True, datastore=datastore
+    )
     s.start()
     time.sleep(0.5)
 
@@ -140,7 +146,7 @@ def test_bits_with_RedisDatastore():
 
 
 def test_registers_with_DictDatastore():
-    s = modbus_server.Server(host="localhost", port=5020, daemon=True)
+    s = modbus_server.Server(host="localhost", port=PORT, daemon=True)
     s.start()
     time.sleep(0.5)
 
@@ -152,7 +158,9 @@ def test_registers_with_DictDatastore():
 
 def test_registers_with_RedisDatastore():
     datastore = modbus_server.RedisDatastore()
-    s = modbus_server.Server(host="localhost", port=5020, daemon=True, datastore=datastore)
+    s = modbus_server.Server(
+        host="localhost", port=PORT, daemon=True, datastore=datastore
+    )
     s.start()
     time.sleep(0.5)
 
@@ -166,7 +174,9 @@ def notest_RedisDatastore_with_json():
     with open("example_modbus_address_map.json") as f:
         modbus_address_map = json.load(f)
     datastore = modbus_server.RedisDatastore(modbus_address_map)
-    s = modbus_server.Server(host="localhost", port=5020, daemon=True, datastore=datastore)
+    s = modbus_server.Server(
+        host="localhost", port=PORT, daemon=True, datastore=datastore
+    )
     s.start()
     time.sleep(0.5)
 

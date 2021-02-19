@@ -13,7 +13,7 @@ socketserver.TCPServer.allow_reuse_address = True
 logger = logging.getLogger("modbus_server_logger")
 formatter = logging.Formatter("%(levelname)s: %(message)s")
 streamhandler = logging.StreamHandler()
-streamhandler.setLevel(logging.WARNING)
+streamhandler.setLevel(logging.DEBUG)
 streamhandler.setFormatter(formatter)
 logger.addHandler(streamhandler)
 
@@ -41,9 +41,6 @@ def build_error_response(header_items, exception_code):
     response_items.append(exception_code)
 
     response = struct.pack(f"!HHHBBB", *response_items)
-
-    error_descriptions = {1: "Illegal Function code", 2: "", 3: "", 4: ""}
-
     return response
 
 
@@ -78,7 +75,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
             self.request.sendall(response)
             return None
 
-        if function_code in (1, 2, 3, 4):  # 'Read' Function Codes
+        if function_code in (1, 2, 3, 4):  # -> The 4 'Read' Function Codes
             first_address = struct.unpack("!H", self.data[8:10])[0]
             number_of_registers = struct.unpack("!H", self.data[10:12])[0]
 
@@ -166,7 +163,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
 
 class Server:
     def __init__(
-        self, host="localhost", port=502, daemon=False, datastore=None, autostart=False
+        self, host="localhost", port=502, daemon=False, datastore=None, loglevel='INFO', autostart=False
     ):
         self.host = host
         self.port = port
@@ -176,13 +173,15 @@ class Server:
             self.datastore = datastore
         self.daemon = daemon
         self.tcp_server = None
+        streamhandler.setLevel(loglevel)
         if autostart:
             self.start()
 
     def _server_thread(self):
-        self.tcp_server = socketserver.ThreadingTCPServer(
-            (self.host, self.port), TCPHandler
-        )
+        try:
+            self.tcp_server = socketserver.TCPServer((self.host, self.port), TCPHandler)
+        except OSError:
+            raise OSError(f"Could not start TCP server on port {self.port}")
         self.tcp_server.allow_reuse_address = True
         self.tcp_server.datastore = self.datastore
         self.tcp_server.serve_forever()
@@ -200,6 +199,9 @@ class Server:
             self.tcp_server.server_close()
             self.tcp_server = None
         logger.info("Modbus Server stopped")
+
+    def dump_datastore(self):
+        return self.datastore.dump()
 
     ## Convenience Functions for direct access to object reference (single + multiple):
     ## ================================================================================
