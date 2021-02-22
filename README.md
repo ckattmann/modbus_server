@@ -1,5 +1,6 @@
-# SimpleModbusServer
+# modbus_server
 A Modbus server implementation in pure Python.
+
 ## Installation
 ```shell
 pip install modbus_server

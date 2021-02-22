@@ -23,7 +23,9 @@ def modbus_server_instance():
         modbus_address_map = json.load(f)
 
     datastore = modbus_server.RedisDatastore(modbus_address_map)
-    s = modbus_server.Server(port=5020, datastore=datastore, autostart=True)
+    s = modbus_server.Server(
+        port=5020, datastore=datastore, autostart=True, daemon=True
+    )
     yield s
     s.stop()
 

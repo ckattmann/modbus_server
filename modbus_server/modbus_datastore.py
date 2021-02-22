@@ -4,8 +4,6 @@ import json
 import warnings
 import logging
 
-import pprint
-
 logger = logging.getLogger("modbus_server_logger")
 
 try:
@@ -16,12 +14,13 @@ except ImportError:
 
 class DictDatastore:
     def __init__(self):
-        self.datadict = {
+        self.empty_datadict = {
             "coils": {},
             "discrete_inputs": {},
             "input_registers": {},
             "holding_registers": {},
         }
+        self.datadict = dict(self.empty_datadict)
         logger.debug("Initialized empty DictDatastore")
 
     def read(self, object_reference, first_address, quantity_of_records):
@@ -47,6 +46,9 @@ class DictDatastore:
 
     def dump(self):
         return self.datadict
+
+    def empty(self):
+        self.datadict = dict(self.empty_datadict)
 
 
 class RedisDatastore:
@@ -88,7 +90,7 @@ class RedisDatastore:
     #     self.modbus_address_map
 
     def print_address_map(self):
-        pprint.pprint(self.modbus_address_map)
+        print(self.modbus_address_map)
 
     def print_all_current_values(self):
         for object_reference, address_map in self.modbus_address_map.items():
