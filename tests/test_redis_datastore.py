@@ -1,15 +1,13 @@
+import time
 import json
 import pytest
+import redis
+import modbus_server
+from pyModbusTCP.client import ModbusClient
 
 
-# r.set("example_input_register_0", 1234)
-# r.set("example_holding_register_0", 4321)
-
-
-@pytest.fixture(autouse=True)
+@pytest.fixture()
 def redis_client():
-    import redis
-
     r = redis.Redis(host="localhost", port=6379, db=0)
     r.ping()
     return r
@@ -17,28 +15,26 @@ def redis_client():
 
 @pytest.fixture(autouse=True)
 def modbus_server_instance():
-    import modbus_server
-
     with open("tests/example_modbus_address_map.json") as f:
         modbus_address_map = json.load(f)
-
     datastore = modbus_server.RedisDatastore(modbus_address_map)
-    s = modbus_server.Server(
-        port=5020, datastore=datastore, autostart=True, daemon=True
-    )
+    s = modbus_server.Server(port=5020, datastore=datastore, autostart=True)
     yield s
     s.stop()
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture()
 def modbus_client():
-    from pyModbusTCP.client import ModbusClient
-
     return ModbusClient(host="localhost", port=5020, auto_open=True)
+
+
+# Tests:
+# ======
 
 
 def test_redis_read_coil(redis_client, modbus_client):
     redis_client.set("example_coil_0", 1)
+    time.sleep(0.1)
     assert modbus_client.read_coils(0, 1) == [True]
 
 
