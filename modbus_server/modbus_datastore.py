@@ -1,6 +1,5 @@
 import struct
 import distutils.util
-import json
 import warnings
 import logging
 
