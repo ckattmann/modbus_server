@@ -1,13 +1,18 @@
-# Imports from stdlib:
-import time
 import socket
 import struct
 import threading
 import logging
-import multiprocessing
 
-# Internal imports:
 from . import modbus_datastore
+
+# Constants:
+
+FUNCTION_CODE_MAP = {
+    1: "coils",
+    2: "discrete_inputs",
+    4: "input_registers",
+    3: "holding_registers",
+}
 
 
 logger = logging.getLogger("modbus_server_logger")
@@ -76,7 +81,7 @@ def handle_requests(s, addr, datastore):
                 function_code,
             ) = struct.unpack("!HHHBB", data[:8])
         except struct.error:
-            logger.error(f"Received incompatible bytes {data}")
+            logger.error(f"Received incompatible header bytes {data}")
             continue
 
         # Pack header items into a tuple which can more easily be passed around:
@@ -93,13 +98,7 @@ def handle_requests(s, addr, datastore):
             first_address = struct.unpack("!H", data[8:10])[0]
             number_of_registers = struct.unpack("!H", data[10:12])[0]
 
-        function_code_map = {
-            1: "coils",
-            2: "discrete_inputs",
-            4: "input_registers",
-            3: "holding_registers",
-        }
-        object_reference = function_code_map[function_code]
+        object_reference = FUNCTION_CODE_MAP[function_code]
 
         ## Validate number of objects requested and respond with exception 3 if invalid:
         ## =============================================================================
@@ -112,8 +111,7 @@ def handle_requests(s, addr, datastore):
 
         if object_reference in ("input_registers", "holding_registers"):
             if number_of_registers < 1 or number_of_registers > 125:
-                response = build_error_response(header_items, exception_code=3)
-                s.sendall(response)
+                s.sendall(build_error_response(header_items, exception_code=3))
                 continue
 
         ## Read addresses from datastore
@@ -123,18 +121,18 @@ def handle_requests(s, addr, datastore):
             data = datastore.read(object_reference, first_address, number_of_registers)
         except KeyError:
             # Address not in datastore -> Respond with exception 02 - Illegal Data Address:
-            response = build_error_response(header_items, exception_code=2)
             logger.warning(
                 f"Request from {addr[0]} for {object_reference}:{first_address} -> Modbus Error 2: Illegal Data Address"
             )
+            response = build_error_response(header_items, exception_code=2)
             s.sendall(response)
             continue
         except:
+            # Other Error -> Respond with exception 04 - Slave Device Failure:
             logger.error(
                 f"Request from {addr[0]} for {object_reference}:{first_address} -> Modbus Error 4"
             )
             raise
-            # Other Error -> Respond with exception 04 - Slave Device Failure:
             response = build_error_response(header_items, exception_code=4)
             s.sendall(response)
             continue
@@ -152,8 +150,8 @@ def handle_requests(s, addr, datastore):
         response_message_length = 3 + len(data_bytes)
         number_of_data_bytes = len(data_bytes)
 
-        # Compose response header
-        response_items = [
+        # Compose response header:
+        response_header_items = [
             transaction_id,
             protocol,
             response_message_length,
@@ -163,12 +161,11 @@ def handle_requests(s, addr, datastore):
         ]
 
         # Pack response items into binary format and append data_bytes:
-        response = struct.pack(f"!HHHBBB", *response_items) + data_bytes
-
+        response = struct.pack(f"!HHHBBB", *response_header_items) + data_bytes
+        s.sendall(response)
         logger.debug(
             f"Request from {addr[0]} for {object_reference}:{first_address}+{number_of_registers} -> Response {data_bytes}"
         )
-        s.sendall(response)
 
 
 class Server:
