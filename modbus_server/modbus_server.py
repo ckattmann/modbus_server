@@ -229,7 +229,8 @@ class Server:
     def set_coil(self, address, value):
         self._set_value("coils", address, value)
 
-    def set_coils(self, address, values):
+    def set_coils(self, start_address, values):
+        address = start_address
         for value in values:
             self._set_value("coils", address, value)
             address += 1
@@ -237,7 +238,8 @@ class Server:
     def set_discrete_input(self, address, value):
         self._set_value("discrete_inputs", address, value)
 
-    def set_discrete_inputs(self, address, values):
+    def set_discrete_inputs(self, start_address, values):
+        address = start_address
         for value in values:
             self._set_value("discrete_inputs", address, value)
             address += 1
@@ -245,7 +247,8 @@ class Server:
     def set_input_register(self, address, value, encoding):
         self._set_value("input_registers", address, value, encoding)
 
-    def set_input_registers(self, address, values, encoding):
+    def set_input_registers(self, start_address, values, encoding):
+        address = start_address
         for value in values:
             self._set_value("input_registers", address, value, encoding)
             address += struct.calcsize(encoding) // 2
@@ -253,7 +256,8 @@ class Server:
     def set_holding_register(self, address, value, encoding):
         self._set_value("holding_registers", address, value, encoding)
 
-    def set_holding_registers(self, address, values, encoding):
+    def set_holding_registers(self, start_address, values, encoding):
+        address = start_address
         for value in values:
             self._set_value("holding_registers", address, value, encoding)
             address += struct.calcsize(encoding) // 2
