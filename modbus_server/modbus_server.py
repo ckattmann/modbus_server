@@ -47,8 +47,7 @@ def build_error_response(header_items, exception_code):
     # In an error message, the data contains the Exception Code
     response_items.append(exception_code)
 
-    response = struct.pack(f"!HHHBBB", *response_items)
-    return response
+    return struct.pack(f"!HHHBBB", *response_items)
 
 
 def handle_requests(s, addr, datastore):
@@ -282,9 +281,14 @@ class Server:
         if object_reference in ("input_registers", "holding_registers"):
 
             # Verify encoding:
-            if encoding not in ("h", "H", "e"):
+            if encoding not in ("h", "H", "e", "f"):
                 raise ValueError(
-                    f'encoding must be "h"(short), "H"(unsigned short), or "e"(float16), not {encoding}'
+                    f'encoding must be "h" (short), "H" (unsigned short), "e" (float16), or "f" (float32) not {encoding}'
                 )
+
+            if encoding in ("f"):
+                value_bytes12 = value
+                self.datastore.write(object_reference, address, value, encoding)
+                self.datastore.write(object_reference, address + 1, value, encoding)
 
         self.datastore.write(object_reference, address, value, encoding)

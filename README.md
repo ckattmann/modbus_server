@@ -1,5 +1,5 @@
 # modbus_server
-A Modbus server implementation in pure Python.
+A ModbusTCP server implementation in pure Python.
 
 ## Installation
 ```shell
@@ -15,11 +15,10 @@ s.set_coil(1,True)
 ```
 
 ## Todo:
-- Client tests with pyModbusTCP
 - Test 32bit values
 - Test performance
 
-## Testing:
+## Development:
 For testing, install a symlink to the package in the python environment using flit:
 ```shell
 flit install . -s

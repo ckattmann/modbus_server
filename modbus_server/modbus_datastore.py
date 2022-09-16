@@ -35,10 +35,10 @@ class DictDatastore:
                 value = struct.pack(f"!{encoding}", value)
             elif struct.calcsize(encoding) > 2:
                 number_of_registers = struct.calcsize(encoding) // 2
-                value_bytes = struct.pack(f"!{encoding}", value)
+                value_as_bytes = struct.pack(f"!{encoding}", value)
                 for chunk_number in range(0, number_of_registers):
-                    byte_chunk = value_bytes[chunk_number * 2, chunk_number * 2 + 2]
-                    self.datadict[object_reference][address + chunk_number] = value
+                    byte_chunk = value_as_bytes[chunk_number * 2 : chunk_number * 2 + 2]
+                    self.datadict[object_reference][address + chunk_number] = byte_chunk
                 return
 
         self.datadict[object_reference][address] = value
@@ -140,8 +140,10 @@ class RedisDatastore:
         return data
 
     def write(self, object_reference, address, value, encoding):
+
         if type(value) == bool:
             value = str(value)
+
         try:
             key = self.modbus_address_map[object_reference][str(address)]["key"]
         except KeyError:
@@ -150,4 +152,5 @@ class RedisDatastore:
                 "key": key,
                 "encoding": encoding,
             }
+
         self.r.set(key, value)
