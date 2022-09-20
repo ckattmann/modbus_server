@@ -126,11 +126,12 @@ def handle_requests(s, addr, datastore):
             response = build_error_response(header_items, exception_code=2)
             s.sendall(response)
             continue
-        except:
+        except Exception as e:
             # Other Error -> Respond with exception 04 - Slave Device Failure:
             logger.error(
-                f"Request from {addr[0]} for {object_reference}:{first_address} -> Modbus Error 4"
+                f"Request from {addr[0]} for {object_reference}:{first_address} -> Modbus Error 4: Slave Device Failure"
             )
+            # This is probably a bug in datastore.read(), so raise:
             raise
             response = build_error_response(header_items, exception_code=4)
             s.sendall(response)
@@ -159,12 +160,13 @@ def handle_requests(s, addr, datastore):
             number_of_data_bytes,
         ]
 
-        # Pack response items into binary format and append data_bytes:
-        response = struct.pack(f"!HHHBBB", *response_header_items) + data_bytes
-        s.sendall(response)
         logger.debug(
             f"Request from {addr[0]} for {object_reference}:{first_address}+{number_of_registers} -> Response {data_bytes}"
         )
+
+        # Pack response items into binary format and append data_bytes:
+        response = struct.pack(f"!HHHBBB", *response_header_items) + data_bytes
+        s.sendall(response)
 
 
 class Server:
@@ -192,7 +194,7 @@ class Server:
         self.server_thread = threading.Thread(target=self._start_accepting)
         # self.server_thread.daemon = True
         self.server_thread.start()
-        logger.info("Modbus Server started")
+        logger.info(f"Modbus Server started on port {self.port}")
 
     def _start_accepting(self):
         while not self.stop_server:
@@ -201,7 +203,7 @@ class Server:
                 s.bind((self.host, self.port))
                 s.listen(20)
                 con, addr = s.accept()
-                logger.debug(f"Connected to {addr}")
+                # logger.debug(f"Connected to {addr[0]} on port {addr[1]}")
                 handling_thread = threading.Thread(
                     target=handle_requests, args=(con, addr, self.datastore)
                 )

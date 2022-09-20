@@ -22,9 +22,9 @@ class DictDatastore:
         self.datadict = dict(self.empty_datadict)
         logger.debug("Initialized empty DictDatastore")
 
-    def read(self, object_reference, first_address, quantity_of_records):
+    def read(self, object_reference, first_address, number_of_records):
         data = []
-        for address in range(first_address, first_address + quantity_of_records):
+        for address in range(first_address, first_address + number_of_records):
             data.append(self.datadict[object_reference][address])
         return data
 
@@ -84,9 +84,10 @@ class RedisDatastore:
             if std_key not in self.modbus_address_map:
                 self.modbus_address_map[std_key] = {}
 
-    # def set_initial_values(self):
-    # TODO:
-    #     self.modbus_address_map
+    def apply_initial_values(self):
+        for object_reference, addresses in self.modbus_address_map.items():
+            for address, props in addresses.items():
+                self.r.set(props["key"], props["initial_value"])
 
     def print_address_map(self):
         print(self.modbus_address_map)
@@ -99,9 +100,9 @@ class RedisDatastore:
                     f"\tAddress: {address} -> {props['key']} : {self.r.get(props['key'])}"
                 )
 
-    def read(self, object_reference, first_address, quantity_of_records):
+    def read(self, object_reference, first_address, number_of_records):
         data = []
-        for address in range(first_address, first_address + quantity_of_records):
+        for address in range(first_address, first_address + number_of_records):
             address_properties = self.modbus_address_map[object_reference][str(address)]
             key = address_properties["key"]
 
