@@ -10,6 +10,8 @@ try:
 except ImportError:
     logging.info("Could not import redis, RedisDatastore is not available")
 
+# 32 and 64 bit values work differently between the two datastores!
+
 
 class DictDatastore:
     def __init__(self):
@@ -51,11 +53,13 @@ class DictDatastore:
 
 
 class RedisDatastore:
-    def __init__(self, modbus_address_map={}, host="localhost", port=6379, db=0):
+    def __init__(
+        self, modbus_address_map={}, redis_host="localhost", redis_port=6379, redis_db=0
+    ):
 
-        self.host = host
-        self.port = port
-        self.db = db
+        self.host = redis_host
+        self.port = redis_port
+        self.db = redis_db
         self.modbus_address_map = modbus_address_map
         self.r = None
         self._verify_modbus_address_map()
